@@ -1,6 +1,6 @@
 # Sonarr Archiver
 
-This container is based on the works from `alekslyse/sonarr_tag_move` 
+This container builds upon the `alekslyse/sonarr_tag_move` project 
 
 Pull the image from `docker.io/buesche87/sonarrchiver`
 
