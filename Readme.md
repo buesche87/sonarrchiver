@@ -16,4 +16,4 @@ Pull the image from `docker.io/buesche87/sonarrchiver`
 | TEST_SERIES_TITLE | `Blue Planet` | keep empty to process all series |
 
 
-> Processing starts on container start and on schedule
+> Processing starts 3 minutes after container start and on schedule
