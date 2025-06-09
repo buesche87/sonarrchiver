@@ -13,7 +13,7 @@ Pull the image from `docker.io/buesche87/sonarrchiver`
 | TAG_NAME | `archive` | tag to process |
 | NEW_ROOT_FOLDER | `/archive/tvshows` | root folder (must exist in sonarr) |
 | CRON_SCHEDULE | `0 0 * * *` | processing schedule |
-| TEST_SERIES_TITLE | `Blue Planet` | keep empty to process all series |
+| TEST_SERIES_TITLE | `Andor` | keep empty to process all series |
 
 
 > Processing starts 3 minutes after container start and on schedule
