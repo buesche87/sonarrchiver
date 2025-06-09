@@ -2,6 +2,8 @@
 
 This container is based on the works from `alekslyse/sonarr_tag_move` 
 
+Pull the image from `docker.io/buesche87/sonarrchiver`
+
 ## Environment
 
 | variable | value | explanation |
