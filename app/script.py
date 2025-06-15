@@ -4,9 +4,12 @@ import urllib3
 import logging
 
 # Setup logging
-# LOG_LEVEL = os.getenv("LOG_LEVEL", "logging.INFO")
-LOG_LEVEL = logging.INFO  # Change this to your desired log level
-logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -14,9 +17,22 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # Configuration
 SONARR_API_URL = os.environ["SONARR_API_URL"]
 SONARR_API_KEY = os.environ["SONARR_API_KEY"]
-NEW_ROOT_FOLDER = os.environ["NEW_ROOT_FOLDER"]
-TAG_NAME = os.getenv("TAG_NAME", "archive")
 TEST_SERIES_TITLE = os.getenv("TEST_SERIES_TITLE", "")
+
+# Gather 'tag:/folder' pairs
+tag_folder_map = []
+index = 1
+
+while True:
+    pair = os.getenv(f"TAG_FOLDER_PAIR_{index}")
+    if not pair:
+        break
+    if ":" in pair:
+        tag, folder = pair.split(":", 1)
+        tag_folder_map.append((tag.strip(), folder.strip()))
+    else:
+        logging.warning(f"Invalid format in TAG_FOLDER_PAIR_{index}, expected 'tag:/path'")
+    index += 1
 
 # Headers for API requests
 headers = {
@@ -57,14 +73,6 @@ def get_root_folders():
     log_request_response(response)
     return response.json()
 
-# Find the root folder id for a specific tag and root folder path
-def find_tag_root_folder_id(root_folders, tag_name, new_root_folder_path):
-    logging.info(f"Finding root folder ID for {new_root_folder_path}...")
-    for folder in root_folders:
-        if folder['path'] == new_root_folder_path:
-            return folder['id']
-    return None
-
 # Update the series root folder and path
 def update_series_root_folder(series, new_root_folder_id, new_root_folder_path):
     logging.info(f"Updating root folder for series: {series['title']}")
@@ -88,26 +96,31 @@ def main():
     series_list = get_series()
     tags = get_tags()
     root_folders = get_root_folders()
-    tag_id = next((id for id, label in tags.items() if label == TAG_NAME), None)
 
-    if tag_id is None:
-        logging.error("Required configuration not found.")
-        return
+    # Map tag names to IDs
+    tag_ids = {name: id for id, name in tags.items()}
 
-    for series in series_list:
-        if not TEST_SERIES_TITLE or series['title'] == TEST_SERIES_TITLE:
+    for tag_name, new_root_folder in tag_folder_map:
+        tag_id = tag_ids.get(tag_name)
+        if tag_id is None:
+            logging.warning(f"Tag '{tag_name}' not found in Sonarr. Skipping.")
+            continue
+
+        for series in series_list:
+            if TEST_SERIES_TITLE and series['title'] != TEST_SERIES_TITLE:
+                continue
+
             logging.debug(f"Processing series: {series['title']}")
-            if tag_id in series.get('tags', []) and NEW_ROOT_FOLDER in series['rootFolderPath']:
-                # Check if the new root folder path is contained in the existing root folder path
-                logging.info(f"Series '{series['title']}' is already in the correct root folder.")
+            if tag_id in series.get('tags', []) and series['rootFolderPath'] == new_root_folder:
+                logging.info(f"Series '{series['title']}' with tag '{tag_name}' is already in the correct root folder.")
             elif tag_id in series.get('tags', []):
-                status_code = update_series_root_folder(series, tag_id, NEW_ROOT_FOLDER)
+                status_code = update_series_root_folder(series, tag_id, new_root_folder)
                 if status_code == 202:
-                    logging.info(f"Successfully updated root folder for series: {series['title']}")
+                    logging.info(f"Updated root folder for '{series['title']}' to '{new_root_folder}'")
                 else:
-                    logging.error(f"Failed to update series: {series['title']} - Status Code: {status_code}")
+                    logging.error(f"Failed to update '{series['title']}': Status {status_code}")
             else:
-                logging.warning(f"Series '{series['title']}' does not have the '{TAG_NAME}' tag.")
+                logging.debug(f"Series '{series['title']}' does not have tag '{tag_name}'")
 
 if __name__ == "__main__":
     main()
