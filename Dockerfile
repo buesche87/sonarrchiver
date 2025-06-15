@@ -19,5 +19,5 @@ RUN touch /var/log/cron.log
 CMD sh -c 'echo "$CRON_SCHEDULE root python /app/script.py >> /var/log/cron.log 2>&1" > /etc/cron.d/sonarr-cronjob && \
     chmod 0644 /etc/cron.d/sonarr-cronjob && \
     crontab /etc/cron.d/sonarr-cronjob && \
-    (sleep 180 && python /app/script.py) & \
+    (sleep 30 && python /app/script.py) & \
     cron && tail -f /var/log/cron.log'
